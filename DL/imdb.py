@@ -4,35 +4,26 @@ Classify movie reviews into positive" reviews and "negative" reviews, just based
 Use IMDB dataset.
 '''
 
+import tensorflow as tf
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.datasets import imdb
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Embedding, Flatten
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.layers import Dense, Embedding
 
-# Load the IMDB dataset
-(x_train, y_train), (x_test, y_test) = imdb.load_data()
+vocab_size = 1000
+(train_x,train_y) , (test_x,test_y) = imdb.load_data(num_words = vocab_size)
+train_x = pad_sequences(train_x)
+test_x = pad_sequences(test_x)
 
-# Preprocess the data
-max_len = 500  # Maximum sequence length
-vocab_size = 10000  # Vocabulary size
+model= Sequential([
+    Embedding(vocab_size,32),
+    Dense(128,activation = 'relu', input_shape=(vocab_size,32)),
+    Dense(64,activation = 'relu'),
+    Dense(1,activation= 'sigmoid')
+])
 
-x_train = pad_sequences(x_train, maxlen=max_len)
-x_test = pad_sequences(x_test, maxlen=max_len)
+model.compile(optimizer='adam', loss = 'mse', metrics = 'accuracy')
 
-# Build the deep neural network model
-model = Sequential()
-model.add(Embedding(vocab_size, 32, input_length=max_len))
-model.add(Flatten())
-model.add(Dense(16, activation='relu'))
-model.add(Dense(1, activation='sigmoid'))
+history = model.fit(train_x,train_y, epochs =5, batch_size = 32, verbose = 1, validation_data = (test_x,test_y))
 
-# Compile the model
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-
-# Train the model
-model.fit(x_train, y_train, epochs=10, batch_size=32, validation_data=(x_test, y_test))
-
-# Evaluate the model
-loss, accuracy = model.evaluate(x_test, y_test)
-print('Test Loss:', loss)
-print('Test Accuracy:', accuracy)
+mse, mae = model.evaluate(test_x,test_y)
